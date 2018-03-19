@@ -5,9 +5,9 @@
 [![Greenkeeper badge](https://badges.greenkeeper.io/nrfcloud/devzone-oauth.svg)](https://greenkeeper.io/)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)  
-[![DeepScan Grade](https://deepscan.io/api/projects/1770/branches/7588/badge/grade.svg)](https://deepscan.io/dashboard/#view=project&pid=1770&bid=7588)
+[![DeepScan grade](https://deepscan.io/api/projects/2118/branches/10525/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2118&bid=10525)
 [![Known Vulnerabilities](https://snyk.io/test/github/nrfcloud/devzone-oauth/badge.svg?targetFile=package.json)](https://snyk.io/test/github/nrfcloud/devzone-oauth?targetFile=package.json)
-[![Maintainability](https://api.codeclimate.com/v1/badges/e94dc6b5b7c7a13829e8/maintainability)](https://codeclimate.com/github/nRFCloud/devzone-oauth/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/096e1c169b06f283478d/maintainability)](https://codeclimate.com/github/nRFCloud/devzone-oauth/maintainability)
 
 Enables logging in to [nRFCloud.com](https://nrfcloud.com/) with an [Nordic {DevZone](https://devzone.nordicsemi.com/) account.
 
