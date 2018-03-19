@@ -1,0 +1,49 @@
+{
+  "name": "@nrfcloud/devzone-oauth",
+  "version": "0.0.0-development",
+  "description": "Login with {DevZone",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard",
+    "precommit": "npm run lint && npm test",
+    "commitmsg": "commitlint -e",
+    "semantic-release": "semantic-release",
+    "travis-deploy-once": "travis-deploy-once"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nRFCloud/devzone-oauth.git"
+  },
+  "keywords": [
+    "nRFCloud",
+    "IoT",
+    "NordicSemiconductor"
+  ],
+  "author": "Nordic Semiconductor ASA | nordicsemi.no",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/nRFCloud/devzone-oauth/issues"
+  },
+  "homepage": "https://github.com/nRFCloud/devzone-oauth#readme",
+  "engines": {
+    "node": ">=6.10.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^6.0.2",
+    "@commitlint/config-angular": "^6.0.2",
+    "aws-sdk": "^2.185.0",
+    "codeclimate-test-reporter": "^0.5.0",
+    "husky": "^0.14.3",
+    "semantic-release": "^15.0.0",
+    "standard": "^11.0.0",
+    "travis-deploy-once": "^4.3.3"
+  },
+  "dependencies": {},
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
