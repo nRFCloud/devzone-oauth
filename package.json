@@ -6,9 +6,7 @@
   "scripts": {
     "lint": "standard",
     "precommit": "npm run lint && npm test",
-    "commitmsg": "commitlint -e",
-    "semantic-release": "semantic-release",
-    "travis-deploy-once": "travis-deploy-once"
+    "commitmsg": "commitlint -e"
   },
   "repository": {
     "type": "git",
@@ -34,9 +32,7 @@
     "aws-sdk": "^2.185.0",
     "codeclimate-test-reporter": "^0.5.0",
     "husky": "^0.14.3",
-    "semantic-release": "^15.0.0",
-    "standard": "^11.0.0",
-    "travis-deploy-once": "^5.0.0"
+    "standard": "^11.0.0"
   },
   "dependencies": {},
   "files": [
