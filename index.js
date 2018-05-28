@@ -104,7 +104,7 @@ exports.handler = (event, context, callback) => {
                     .promise()
                     .then(res => {
                       callback(null, {
-                        statusCode: 301,
+                        statusCode: 303,
                         headers: {
                           'Location': `${redirectTo}?from=devzone&token=${Token}`
                         }
