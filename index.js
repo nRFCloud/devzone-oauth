@@ -8,6 +8,7 @@ const ssm = new SSM()
 
 exports.handler = async (event, context) => {
   const path = event.stageVariables.parameterPath
+  const cognitoIdentityPoolId = event.stageVariables.cognitoIdentityPoolId
   const { Parameters: MobileParameters } = await ssm
     .getParametersByPath({
       Path: path,
@@ -15,9 +16,6 @@ exports.handler = async (event, context) => {
       WithDecryption: true
     })
     .promise()
-  const { Parameter: { Value: cognitoIdentityPoolId } } = await ssm.getParameter({
-    Name: '/prod/nrfcloud.com/config/identityPool'
-  }).promise()
   const { clientId, clientSecret, redirectTo, cognitoDeveloperProvider } = MobileParameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
 
   const postData = querystring.stringify({
