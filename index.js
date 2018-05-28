@@ -2,10 +2,23 @@
 
 const https = require('https')
 const querystring = require('querystring')
-const { CognitoIdentity, CognitoSync } = require('aws-sdk')
+const { SSM, CognitoIdentity, CognitoSync } = require('aws-sdk')
 
-exports.handler = (event, context, callback) => {
-  const { clientId, clientSecret, redirectTo, cognitoIdentityPoolId, cognitoDeveloperProvider } = event.stageVariables
+const ssm = new SSM()
+
+exports.handler = async (event, context) => {
+  const path = event.stageVariables.parameterPath
+  const { Parameters: MobileParameters } = await ssm
+    .getParametersByPath({
+      Path: path,
+      Recursive: true,
+      WithDecryption: true
+    })
+    .promise()
+  const { Parameter: { Value: cognitoIdentityPoolId } } = await ssm.getParameter({
+    Name: '/prod/nrfcloud.com/config/identityPool'
+  }).promise()
+  const { clientId, clientSecret, redirectTo, cognitoDeveloperProvider } = MobileParameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
 
   const postData = querystring.stringify({
     grant_type: 'authorization_code',
@@ -15,33 +28,18 @@ exports.handler = (event, context, callback) => {
     redirect_uri: `https://${event.headers.Host}${event.requestContext.path}`
   })
 
-  // Get access token
-  const req = https.request({
-    method: 'POST',
-    protocol: 'https:',
-    host: 'devzone.nordicsemi.com',
-    port: 443,
-    path: '/api.ashx/v2/oauth/token',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': postData.length
-    }
-  }, res => {
-    res.setEncoding('utf8')
-    const body = []
-    res.on('data', data => {
-      body.push(data)
-    })
-    res.on('end', () => {
-      const { access_token: AccessToken, refresh_token: RefreshToken } = JSON.parse(body.join(''))
-
-      https.get({
+  return new Promise(resolve => {
+    // Get access token
+    const req = https
+      .request({
+        method: 'POST',
         protocol: 'https:',
         host: 'devzone.nordicsemi.com',
         port: 443,
-        path: '/api.ashx/v2/info.json',
+        path: '/api.ashx/v2/oauth/token',
         headers: {
-          'Authorization': `OAuth ${AccessToken}`
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': postData.length
         }
       }, res => {
         res.setEncoding('utf8')
@@ -50,90 +48,119 @@ exports.handler = (event, context, callback) => {
           body.push(data)
         })
         res.on('end', () => {
-          const { Username, DisplayName, AvatarUrl, PrivateEmail } = JSON.parse(body.join('')).AccessingUser
-          const identityClient = new CognitoIdentity()
-          identityClient
-            .getOpenIdTokenForDeveloperIdentity({
-              IdentityPoolId: cognitoIdentityPoolId,
-              Logins: {
-                [cognitoDeveloperProvider]: `${Username}@devzone`
-              }
+          const { access_token: AccessToken, refresh_token: RefreshToken } = JSON.parse(body.join(''))
+
+          https.get({
+            protocol: 'https:',
+            host: 'devzone.nordicsemi.com',
+            port: 443,
+            path: '/api.ashx/v2/info.json',
+            headers: {
+              'Authorization': `OAuth ${AccessToken}`
+            }
+          }, res => {
+            res.setEncoding('utf8')
+            const body = []
+            res.on('data', data => {
+              body.push(data)
             })
-            .promise()
-            .then(({ IdentityId, Token }) => {
-              const cognitosync = new CognitoSync()
-              return cognitosync
-                .listRecords({
-                  DatasetName: 'identityInfo',
-                  IdentityId,
-                  IdentityPoolId: cognitoIdentityPoolId
+            res.on('end', () => {
+              const { Username, DisplayName, AvatarUrl, PrivateEmail } = JSON.parse(body.join('')).AccessingUser
+              const identityClient = new CognitoIdentity()
+              identityClient
+                .getOpenIdTokenForDeveloperIdentity({
+                  IdentityPoolId: cognitoIdentityPoolId,
+                  Logins: {
+                    [cognitoDeveloperProvider]: `${Username}@devzone`
+                  }
                 })
                 .promise()
-                .then((res) => {
-                  console.log(res)
-                  const { SyncSessionToken, Records } = res
+                .then(({ IdentityId, Token }) => {
+                  const cognitosync = new CognitoSync()
                   return cognitosync
-                    .updateRecords({
+                    .listRecords({
                       DatasetName: 'identityInfo',
                       IdentityId,
-                      IdentityPoolId: cognitoIdentityPoolId,
-                      SyncSessionToken,
-                      ClientContext: 'oauth-login',
-                      RecordPatches: [{
-                        Key: 'email',
-                        Op: 'replace',
-                        SyncCount: (Records.find(({ Key }) => Key === 'email') || {}).SyncCount || 0,
-                        Value: PrivateEmail
-                      }, {
-                        Key: 'name',
-                        Op: 'replace',
-                        SyncCount: (Records.find(({ Key }) => Key === 'name') || {}).SyncCount || 0,
-                        Value: DisplayName
-                      }, {
-                        Key: 'avatar',
-                        Op: 'replace',
-                        SyncCount: (Records.find(({ Key }) => Key === 'avatar') || {}).SyncCount || 0,
-                        Value: AvatarUrl
-                      }, {
-                        Key: 'refresh_token',
-                        Op: 'replace',
-                        SyncCount: (Records.find(({ Key }) => Key === 'refresh_token') || {}).SyncCount || 0,
-                        Value: RefreshToken
-                      }]
+                      IdentityPoolId: cognitoIdentityPoolId
                     })
                     .promise()
-                    .then(res => {
-                      callback(null, {
-                        statusCode: 303,
-                        headers: {
-                          'Location': `${redirectTo}?from=devzone&token=${Token}`
-                        }
-                      })
+                    .then((res) => {
+                      console.log(res)
+                      const { SyncSessionToken, Records } = res
+                      return cognitosync
+                        .updateRecords({
+                          DatasetName: 'identityInfo',
+                          IdentityId,
+                          IdentityPoolId: cognitoIdentityPoolId,
+                          SyncSessionToken,
+                          ClientContext: 'oauth-login',
+                          RecordPatches: [{
+                            Key: 'email',
+                            Op: 'replace',
+                            SyncCount: (Records.find(({ Key }) => Key === 'email') || {}).SyncCount || 0,
+                            Value: PrivateEmail
+                          }, {
+                            Key: 'name',
+                            Op: 'replace',
+                            SyncCount: (Records.find(({ Key }) => Key === 'name') || {}).SyncCount || 0,
+                            Value: DisplayName
+                          }, {
+                            Key: 'avatar',
+                            Op: 'replace',
+                            SyncCount: (Records.find(({ Key }) => Key === 'avatar') || {}).SyncCount || 0,
+                            Value: AvatarUrl
+                          }, {
+                            Key: 'refresh_token',
+                            Op: 'replace',
+                            SyncCount: (Records.find(({ Key }) => Key === 'refresh_token') || {}).SyncCount || 0,
+                            Value: RefreshToken
+                          }]
+                        })
+                        .promise()
+                        .then(() => resolve({
+                          statusCode: 303,
+                          headers: {
+                            'Location': redirectTo.replace('${token}', Token)
+                          }
+                        }))
                     })
                 })
+                .catch(err => resolve({
+                  statusCode: 500,
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(err)
+                }))
             })
-            .catch(err => {
-              callback(null, {
-                statusCode: 500,
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(err)
-              })
-            })
+          })
         })
       })
-    })
-  })
-  req.on('error', err => {
-    callback(null, {
+    req.on('error', err => resolve({
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(err)
-    })
+    }))
+    req.write(postData)
+    req.end()
   })
-  req.write(postData)
-  req.end()
+}
+
+/**
+ * Recursively set object properties on obj. Path is a slash separate path.
+ */
+const setProperty = (obj, path, value) => {
+  const s = path.split('/', 2)
+  const k = s[0]
+  if (s.length === 2) {
+    if (!obj[k]) {
+      obj[k] = {}
+    }
+    obj[k] = setProperty(obj[k], s[1], value)
+  } else {
+    obj[k] = value
+  }
+  return obj
 }
