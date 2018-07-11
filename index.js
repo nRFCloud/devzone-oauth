@@ -119,7 +119,7 @@ exports.handler = async (event, context) => {
                         .then(() => resolve({
                           statusCode: 303,
                           headers: {
-                            'Location': redirectTo.replace('${token}', Token)
+                            'Location': redirectTo.replace('${token}', Token) // eslint-disable-line no-template-curly-in-string
                           }
                         }))
                     })
