@@ -29,7 +29,7 @@
   "devDependencies": {
     "@commitlint/cli": "^7.0.0",
     "@commitlint/config-angular": "^7.0.1",
-    "aws-sdk": "^2.247.1",
+    "aws-sdk": "^2.272.1",
     "codeclimate-test-reporter": "^0.5.0",
     "husky": "^0.14.3",
     "standard": "^11.0.1"
