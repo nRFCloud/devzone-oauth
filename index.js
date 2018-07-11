@@ -9,6 +9,7 @@ const ssm = new SSM()
 exports.handler = async (event, context) => {
   const path = event.stageVariables.parameterPath
   const cognitoIdentityPoolId = event.stageVariables.cognitoIdentityPoolId
+  const cognitoDeveloperProvider = event.stageVariables.cognitoDeveloperProvider
   const { Parameters: MobileParameters } = await ssm
     .getParametersByPath({
       Path: path,
@@ -16,7 +17,7 @@ exports.handler = async (event, context) => {
       WithDecryption: true
     })
     .promise()
-  const { clientId, clientSecret, redirectTo, cognitoDeveloperProvider } = MobileParameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
+  const { clientId, clientSecret, redirectTo } = MobileParameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
 
   const postData = querystring.stringify({
     grant_type: 'authorization_code',
