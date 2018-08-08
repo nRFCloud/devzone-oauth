@@ -84,7 +84,6 @@ exports.handler = async (event, context) => {
                     })
                     .promise()
                     .then((res) => {
-                      console.log(res)
                       const { SyncSessionToken, Records } = res
                       return cognitosync
                         .updateRecords({
