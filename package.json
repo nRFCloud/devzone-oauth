@@ -32,7 +32,7 @@
     "aws-sdk": "^2.272.1",
     "codeclimate-test-reporter": "^0.5.0",
     "husky": "^0.14.3",
-    "standard": "^11.0.1"
+    "standard": "^12.0.1"
   },
   "dependencies": {},
   "files": [
