@@ -6,18 +6,18 @@ const { SSM, CognitoIdentity, CognitoSync } = require('aws-sdk')
 
 const ssm = new SSM()
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   const path = event.stageVariables.parameterPath
   const cognitoIdentityPoolId = event.stageVariables.cognitoIdentityPoolId
   const cognitoDeveloperProvider = event.stageVariables.cognitoDeveloperProvider
-  const { Parameters: MobileParameters } = await ssm
+  const { Parameters } = await ssm
     .getParametersByPath({
       Path: path,
       Recursive: true,
       WithDecryption: true
     })
     .promise()
-  const { clientId, clientSecret, redirectTo } = MobileParameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
+  const { clientId, clientSecret, redirectTo } = Parameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
 
   const postData = querystring.stringify({
     grant_type: 'authorization_code',
