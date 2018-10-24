@@ -71,7 +71,8 @@ exports.handler = async (event) => {
                   IdentityPoolId: cognitoIdentityPoolId,
                   Logins: {
                     [cognitoDeveloperProvider]: `${Username}@devzone`
-                  }
+                  },
+                  TokenDuration: 86400 // Token lifetime 24hrs
                 })
                 .promise()
                 .then(({ IdentityId, Token }) => {
