@@ -6,7 +6,7 @@ const { SSM, CognitoIdentity, CognitoSync } = require('aws-sdk')
 
 const ssm = new SSM()
 
-exports.handler = async (event) => {
+exports.handler = async (event, context, callback) => {
   const path = event.stageVariables.parameterPath
   const cognitoIdentityPoolId = event.stageVariables.cognitoIdentityPoolId
   const cognitoDeveloperProvider = event.stageVariables.cognitoDeveloperProvider
@@ -17,17 +17,16 @@ exports.handler = async (event) => {
       WithDecryption: true
     })
     .promise()
-  const { clientId, clientSecret, redirectTo } = Parameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
-
+  const { clientId, clientSecret } = Parameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
+  // request for new access token
   const postData = querystring.stringify({
-    grant_type: 'authorization_code',
-    code: event.queryStringParameters.code,
+    grant_type: 'refresh_token',
+    refresh_token: event.queryStringParameters.refreshToken,
     client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: `https://${event.headers.Host}${event.requestContext.path}`
+    client_secret: clientSecret
   })
 
-  return new Promise(resolve => {
+  const refreshResult = await new Promise(resolve => {
     // Get access token
     const req = https
       .request({
@@ -64,7 +63,7 @@ exports.handler = async (event) => {
               body.push(data)
             })
             res.on('end', () => {
-              const { Username, DisplayName, AvatarUrl, PrivateEmail } = JSON.parse(body.join('')).AccessingUser
+              const { Username } = JSON.parse(body.join('')).AccessingUser
               const identityClient = new CognitoIdentity()
               identityClient
                 .getOpenIdTokenForDeveloperIdentity({
@@ -77,7 +76,7 @@ exports.handler = async (event) => {
                 .promise()
                 .then(({ IdentityId, Token }) => {
                   const cognitosync = new CognitoSync()
-                  return cognitosync
+                  cognitosync
                     .listRecords({
                       DatasetName: 'identityInfo',
                       IdentityId,
@@ -92,23 +91,8 @@ exports.handler = async (event) => {
                           IdentityId,
                           IdentityPoolId: cognitoIdentityPoolId,
                           SyncSessionToken,
-                          ClientContext: 'oauth-login',
+                          ClientContext: 'oauth-refresh',
                           RecordPatches: [{
-                            Key: 'email',
-                            Op: 'replace',
-                            SyncCount: (Records.find(({ Key }) => Key === 'email') || {}).SyncCount || 0,
-                            Value: PrivateEmail
-                          }, {
-                            Key: 'name',
-                            Op: 'replace',
-                            SyncCount: (Records.find(({ Key }) => Key === 'name') || {}).SyncCount || 0,
-                            Value: DisplayName
-                          }, {
-                            Key: 'avatar',
-                            Op: 'replace',
-                            SyncCount: (Records.find(({ Key }) => Key === 'avatar') || {}).SyncCount || 0,
-                            Value: AvatarUrl
-                          }, {
                             Key: 'refresh_token',
                             Op: 'replace',
                             SyncCount: (Records.find(({ Key }) => Key === 'refresh_token') || {}).SyncCount || 0,
@@ -116,13 +100,17 @@ exports.handler = async (event) => {
                           }]
                         })
                         .promise()
-                        .then(() => resolve({
-                          statusCode: 303,
-                          headers: {
-                            'Location': redirectTo.replace('${token}', Token).replace('${refreshToken}', RefreshToken) // eslint-disable-line no-template-curly-in-string
-                          }
-                        }))
                     })
+                  resolve({
+                    statusCode: 201,
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      token: Token,
+                      refresh: RefreshToken
+                    })
+                  })
                 })
                 .catch(err => resolve({
                   statusCode: 500,
@@ -145,6 +133,8 @@ exports.handler = async (event) => {
     req.write(postData)
     req.end()
   })
+
+  callback(null, refreshResult)
 }
 
 /**
