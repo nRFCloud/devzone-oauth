@@ -6,7 +6,7 @@ const { SSM, CognitoIdentity, CognitoSync } = require('aws-sdk')
 
 const ssm = new SSM()
 
-exports.handler = async (event, context, callback) => {
+exports.handler = async (event) => {
   const path = event.stageVariables.parameterPath
   const cognitoIdentityPoolId = event.stageVariables.cognitoIdentityPoolId
   const cognitoDeveloperProvider = event.stageVariables.cognitoDeveloperProvider
@@ -134,7 +134,7 @@ exports.handler = async (event, context, callback) => {
     req.end()
   })
 
-  callback(null, refreshResult)
+  return refreshResult
 }
 
 /**
