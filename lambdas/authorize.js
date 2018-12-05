@@ -1,32 +1,18 @@
 'use strict'
 
-const https = require('https')
-const querystring = require('querystring')
-const { SSM, CognitoIdentity, CognitoSync } = require('aws-sdk')
-const { setProperty } = require('common')
+import { getParameters, postData } from '../common'
 
-const ssm = new SSM()
+const https = require('https')
+const { SSM, CognitoIdentity, CognitoSync } = require('aws-sdk')
+
+// const ssm = new SSM()
+
+const getParams = getParameters(new SSM())
 
 exports.handler = async (event) => {
-  const path = event.stageVariables.parameterPath
-  const cognitoIdentityPoolId = event.stageVariables.cognitoIdentityPoolId
-  const cognitoDeveloperProvider = event.stageVariables.cognitoDeveloperProvider
-  const { Parameters } = await ssm
-    .getParametersByPath({
-      Path: path,
-      Recursive: true,
-      WithDecryption: true
-    })
-    .promise()
-  const { clientId, clientSecret, redirectTo } = Parameters.reduce((cfg, { Name, Value }) => setProperty(cfg, Name.replace(path, ''), Value), {})
-
-  const postData = querystring.stringify({
-    grant_type: 'authorization_code',
-    code: event.queryStringParameters.code,
-    client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: `https://${event.headers.Host}${event.requestContext.path}`
-  })
+  const requestType = 'authorization_code'
+  const devzoneParams = getParams(event)
+  const payload = postData(devzoneParams, requestType)
 
   return new Promise(resolve => {
     // Get access token
